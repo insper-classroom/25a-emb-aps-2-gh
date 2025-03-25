@@ -58,5 +58,5 @@ O controle foi desenvolvido no formato de uma pistola, para criar um entreterime
 
 ### **Proposta Inicial**
 
-*(inserir render 3D ou mockup com botões identificados, posição da IMU, LEDs etc)*
+![Proposta inicial](Modelo.jpeg)
 
