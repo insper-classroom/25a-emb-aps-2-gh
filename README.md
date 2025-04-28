@@ -60,3 +60,12 @@ O controle foi desenvolvido no formato de uma pistola, para criar um entreterime
 
 ![Proposta inicial](Modelo.jpeg)
 
+## Estruturas dos Arquivos
+Arquivo | Função
+main.c | Inicializar hardware, criar tasks, iniciar scheduler
+imu_task.c/h | Leitura da MPU6050 + Fusão de Dados + Envio à fila
+joystick_task.c/h | Leitura dos dois eixos ADC + Envio à fila
+buttons_task.c/h | Configuração de GPIOs + Interrupções + Envio à fila
+uart_task.c/h | Leitura das filas de eventos e envio dos pacotes pela UART
+feedback_task.c/h | Controle do LED de status + Motor de vibração (acionado pelos eventos)
+common.h | Structs (mouse_event_t, button_event_t, defines de filas)
