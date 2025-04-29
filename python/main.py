@@ -3,14 +3,32 @@ import glob
 import serial
 import pyautogui
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 from time import sleep
+import keyboard
+from pynput.keyboard import Controller
 
 pyautogui.PAUSE = 0
+keyboard = Controller()
+
+keys_pressed = {
+    "w": False,
+    "a": False,
+    "s": False,
+    "d": False,
+}
+
+def update_key_state(key: str, should_press: bool):
+    """Atualiza o estado da tecla: pressiona ou solta se necessário."""
+    if should_press and not keys_pressed[key]:
+        keyboard.press(key)
+        keys_pressed[key] = True
+    elif not should_press and keys_pressed[key]:
+        keyboard.release(key)
+        keys_pressed[key] = False
 
 def move_mouse(axis, value):
-    """Move o mouse de acordo com o eixo e valor recebidos."""
+    """Interpreta e executa ação com base no valor do eixo"""
     if axis == 0:
         pyautogui.moveRel(value, 0)
     elif axis == 1:
@@ -23,14 +41,25 @@ def move_mouse(axis, value):
         pyautogui.press("q")
     elif axis == 5:
         pyautogui.press("e")
-    elif axis == 6 and value != 0:  # D
-        pyautogui.press("d")
-    elif axis == 7 and value != 0:  # A
-        pyautogui.press("a")
-    elif axis == 8 and value != 0:  # S
-        pyautogui.press("s")
-    elif axis == 9 and value != 0:  # W
-        pyautogui.press("w")
+    elif axis in [6, 7, 8, 9]:
+        handle_analog_movement(axis, value)
+
+def handle_analog_movement(axis, value):
+    """Controla movimento WASD com base no analógico"""
+    threshold = 0  # já estamos tratando isso no firmware
+    if axis == 6:  # Direita (D)
+        update_key_state("d", value != 0)
+        update_key_state("a", False)
+    elif axis == 7:  # Esquerda (A)
+        update_key_state("a", value != 0)
+        update_key_state("d", False)
+    elif axis == 8:  # Baixo (S)
+        update_key_state("s", value != 0)
+        update_key_state("w", False)
+    elif axis == 9:  # Cima (W)
+        update_key_state("w", value != 0)
+        update_key_state("s", False)
+
 
 def controle(ser):
     """

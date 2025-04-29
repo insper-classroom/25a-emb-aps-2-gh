@@ -3,6 +3,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queues.h"
+#include "hardware/adc.h"
 
 #define ANALOG_X_CHANNEL 0  // GPIO 26
 #define ANALOG_Y_CHANNEL 1  // GPIO 27
@@ -21,6 +22,8 @@ void analog_task(void *p) {
     adc_gpio_init(gpio);
     adc_select_input(adc_channel);
 
+    int last_direction = 0;
+
     while (1) {
         int leitura = adc_read();
 
@@ -33,16 +36,33 @@ void analog_task(void *p) {
         int media = sum / count;
         int valor = filter_adc(media);
 
-        if (valor > 30 || valor < -30) {
+        int dir = 0;
+        if (valor > 80) dir = 1;
+        else if (valor < -80) dir = -1;
+
+        if (dir != last_direction) {
             mouse_event_t event;
-            event.axis = (adc_channel == 0)
-                ? (valor > 0 ? 6 : 7)  // X eixo: direita ou esquerda
-                : (valor > 0 ? 8 : 9); // Y eixo: baixo ou cima
-            event.value = 1;
-            xQueueSend(xQueuePos, &event, 0);
+
+            if (last_direction != 0) {
+                event.axis = (adc_channel == 0)
+                    ? (last_direction > 0 ? 6 : 7)
+                    : (last_direction > 0 ? 8 : 9);
+                event.value = 0;
+                xQueueSend(xQueuePos, &event, 0);
+            }
+
+            if (dir != 0) {
+                event.axis = (adc_channel == 0)
+                    ? (dir > 0 ? 6 : 7)
+                    : (dir > 0 ? 8 : 9);
+                event.value = 1;
+                xQueueSend(xQueuePos, &event, 0);
+            }
+
+            last_direction = dir;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -50,5 +70,4 @@ void analog_task_init(void) {
     adc_init();
     adc_gpio_init(26); // X
     adc_gpio_init(27); // Y
-    xTaskCreate(analog_task, "Analog Task", 2048, NULL, 1, NULL);
 }
