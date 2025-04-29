@@ -8,7 +8,7 @@
 #include "uart_task.h"
 #include "imu_task.h"
 
-QueueHandle_t xQueuePos = NULL;
+QueueHandle_t xQueuePos;
 
 void queues_init(void) {
     xQueuePos = xQueueCreate(32, sizeof(mouse_event_t));

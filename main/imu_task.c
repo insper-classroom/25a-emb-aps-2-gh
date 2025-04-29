@@ -11,13 +11,10 @@
 #include <stdio.h>
 #include <math.h>
 
-
-
-#define SAMPLE_PERIOD (0.01f) // 10 ms, equivalente a 100Hz
-
-const int MPU_ADDRESS = 0x68;
-const int I2C_SDA_GPIO = 4;
-const int I2C_SCL_GPIO = 5;
+#define SAMPLE_PERIOD (0.01f)
+#define MPU_ADDRESS (0x68)
+#define I2C_SDA_GPIO (4)
+#define I2C_SCL_GPIO (5)
 
 static void mpu6050_reset() {
     uint8_t buf[] = {0x6B, 0x00};
@@ -67,7 +64,6 @@ void imu_task(void *p) {
             .axis.y = gyro[1] / 131.0f,
             .axis.z = gyro[2] / 131.0f,
         };
-
         FusionVector accelerometer = {
             .axis.x = acceleration[0] / 16384.0f,
             .axis.y = acceleration[1] / 16384.0f,
@@ -78,26 +74,17 @@ void imu_task(void *p) {
 
         FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
 
-        // Ajuste de sensitividade
-        float roll = euler.angle.roll;
-        float pitch = euler.angle.pitch;
+        mouse_event_t value_X = { .axis = 0, .value = (int16_t)(euler.angle.roll) };
+        mouse_event_t value_Y = { .axis = 1, .value = (int16_t)(euler.angle.pitch * 0.7f) };
+        mouse_event_t click = { .axis = 2, .value = (int16_t)(accelerometer.axis.x * 105) };
 
-        if (fabsf(roll) < 5.0f) roll = 0;
-        if (fabsf(pitch) < 5.0f) pitch = 0;
+        xQueueSend(xQueuePos, &value_X, portMAX_DELAY);
+        xQueueSend(xQueuePos, &value_Y, portMAX_DELAY);
 
-        int16_t move_x = (int16_t)(roll * 5.0f);
-        int16_t move_y = (int16_t)(-pitch * 5.0f);
-
-        if (move_x != 0) {
-            mouse_event_t event = { .axis = 0, .value = move_x };
-            xQueueSend(xQueuePos, &event, 0);
+        if (fabsf(click.value) > 92) {
+            xQueueSend(xQueuePos, &click, portMAX_DELAY);
         }
 
-        if (move_y != 0) {
-            mouse_event_t event = { .axis = 1, .value = move_y };
-            xQueueSend(xQueuePos, &event, 0);
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(10)); // Delay 10ms = 100Hz
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }

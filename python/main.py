@@ -17,6 +17,20 @@ def move_mouse(axis, value):
         pyautogui.moveRel(0, value)
     elif axis == 2:
         pyautogui.click()
+    elif axis == 3:
+        pyautogui.press("r")
+    elif axis == 4:
+        pyautogui.press("q")
+    elif axis == 5:
+        pyautogui.press("e")
+    elif axis == 6 and value != 0:  # D
+        pyautogui.press("d")
+    elif axis == 7 and value != 0:  # A
+        pyautogui.press("a")
+    elif axis == 8 and value != 0:  # S
+        pyautogui.press("s")
+    elif axis == 9 and value != 0:  # W
+        pyautogui.press("w")
 
 def controle(ser):
     """
