@@ -74,8 +74,8 @@ void imu_task(void *p) {
 
         FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
 
-        mouse_event_t value_X = { .axis = 0, .value = (int16_t)(euler.angle.roll) };
-        mouse_event_t value_Y = { .axis = 1, .value = (int16_t)(euler.angle.pitch * 0.7f) };
+        mouse_event_t value_X = { .axis = 1, .value = - (int16_t)(euler.angle.roll) };
+        mouse_event_t value_Y = { .axis = 0, .value = (int16_t)(euler.angle.pitch * 0.7f) };
         mouse_event_t click = { .axis = 2, .value = (int16_t)(accelerometer.axis.x * 105) };
 
         xQueueSend(xQueuePos, &value_X, portMAX_DELAY);

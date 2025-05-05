@@ -30,9 +30,9 @@ def update_key_state(key: str, should_press: bool):
 def move_mouse(axis, value):
     """Interpreta e executa ação com base no valor do eixo"""
     if axis == 0:
-        pyautogui.moveRel(value, 0)
+        pyautogui.moveRel(value*0.5, 0)
     elif axis == 1:
-        pyautogui.moveRel(0, value)
+        pyautogui.moveRel(0, value*0.5)
     elif axis == 2:
         pyautogui.click()
     elif axis == 3:
