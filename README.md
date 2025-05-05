@@ -4,55 +4,70 @@
 **Shell Shockers** – Um jogo de tiro multiplayer em primeira pessoa, jogado diretamente no navegador, em que ovos armados participam de partidas um contra o outro, o objetivo é atirar para matar os outros participantes. 
 
 ## Ideia do Controle
-O controle foi desenvolvido no formato de uma pistola, para criar um entreterimento maior podendo apontar a pistola na direção da sua mira. A mira é controlada por uma IMU (sensor de movimento), que substitui os movimentos do mouse. Os botões físicos da pistola são usados para ações principais do jogo, como atirar, recarregar, pular e trocar de arma.
+Desenvolvemos um controle físico no formato de pistola, trazendo maior imersão ao jogo ao permitir que o jogador aponte fisicamente a arma para mirar.
+A mira é controlada por uma IMU (MPU6050), substituindo o movimento do mouse, e a movimentação é feita por um joystick analógico. Botões físicos disparam as ações típicas do jogo (tiro, pulo, recarregar, trocar de arma), e um motor de vibração fornece feedback tátil.
 
 ## Inputs e Outputs
 
 ### **Entradas (Inputs)**
 
 - **IMU (MPU6050):**
-  - Controle da mira com base na inclinação da pistola (substitui o mouse)
+  - Controle da mira com base na inclinação da pistola (eixos X e Y)
+
+- **Joystick analógico (2 canais ADC):**
+  - Controle de movimentação (W, A, S, D)
 
 - **4x Entradas Digitais:**
   - **Gatilho:** Tiro (mapeado para clique esquerdo do mouse)
   - **Botão de recarregar:** Tecla “R”
-  - **Botão de pulo:** Tecla “Espaço”
+  - **Botão de lança granada:** Tecla "Q"
   - **Botão de troca de arma:** Tecla “E”
 
 ### **Saídas (Outputs)**
-- **LED indicador azul:** Conectado ao computador via Bluetooth
-- **Vibração:** Ao ser atingido ou recarregar
+- **Motor de vibração (Vibracal):** Ativado ao atirar
 
 ## Protocolo Utilizado
 
-- **UART** para comunicação serial com o computador.
-- **IMU** para leitura de orientação.
-- **GPIO** para os botões digitais.
+- **UART** para comunicação serial com o computador.Formato de mensagem:
+[0xFF][AXIS][VAL0][VAL1]
+Exemplo: Eixo 6 (movimento para direita), valor 1
+
+Eixos:
+| Axis | Função               |
+| ---- | -------------------- |
+| 0    | Movimento Mouse X    |
+| 1    | Movimento Mouse Y    |
+| 2    | Clique (tiro)        |
+| 3    | Recarregar (`R`)     |
+| 4    | Pulo (`Espaço`)      |
+| 5    | Trocar arma (`E`)    |
+| 6    | Mover Direita (`D`)  |
+| 7    | Mover Esquerda (`A`) |
+| 8    | Mover Baixo (`S`)    |
+| 9    | Mover Cima (`W`)     |
 
 ## Diagrama de Blocos Explicativo do Firmware
 
 ### **Estrutura Geral**
 
-![Diagrama de Blocos](Diagrama2.png)
+![Diagrama de Blocos](Diagrama.png)
 
 #### **Principais Componentes do RTOS**
 - **Tasks:**
-  - Task de leitura da IMU
-  - Task de leitura dos botões
-  - Task de controle visual (LEDs)
-  - Task de vibração
+  - imu_task: Leitura e envio da orientação da IMU
+  - analog_task: Leitura dos eixos do joystick
+  - button_task: Callback por interrupção para botões digitais
+  - uart_task: Envio serial dos eventos para o PC
 
 - **Filas:**
-  - Fila de eventos de entrada (botões)
-  - Fila de dados de orientação (IMU)
-  - Fila de comandos para feedback
+  - xQueuePos: Enfileira eventos do tipo mouse_event_t
 
- **Semáforos:**
+ **Interrupções:**
+  - GPIOs dos botões
 
-- Controle do LED de conexão e vibração
+- **Controle de vibração:**
+  - Ativado dentro do button_task ao detectar disparo
 
-- **Interrupts:**
-  - Callbacks para os botões digitais
 
 ## Imagens do Controle
 
@@ -60,12 +75,18 @@ O controle foi desenvolvido no formato de uma pistola, para criar um entreterime
 
 ![Proposta inicial](Modelo.jpeg)
 
-## Estruturas dos Arquivos
-Arquivo | Função
-main.c | Inicializar hardware, criar tasks, iniciar scheduler
-imu_task.c/h | Leitura da MPU6050 + Fusão de Dados + Envio à fila
-joystick_task.c/h | Leitura dos dois eixos ADC + Envio à fila
-buttons_task.c/h | Configuração de GPIOs + Interrupções + Envio à fila
-uart_task.c/h | Leitura das filas de eventos e envio dos pacotes pela UART
-feedback_task.c/h | Controle do LED de status + Motor de vibração (acionado pelos eventos)
-common.h | Structs (mouse_event_t, button_event_t, defines de filas)
+## **Protótipo Real**
+
+![Proposta inicial](Real.jpeg)
+
+## Estrutura dos Arquivos:
+
+| Arquivo                 | Descrição                                                               |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `main.c`                | Inicializa hardware e tasks principais                                  |
+| `imu_task.c/h`          | Leitura do MPU6050 + fusão de sensores                                  |
+| `analog_task.c/h`       | Leitura dos eixos X/Y do joystick (ADC)                                 |
+| `button_task.c/h`       | Setup de GPIOs + interrupções + controle do vibrador                    |
+| `uart_task.c/h`         | Montagem e envio dos pacotes UART para o PC                             |
+| `queues.c/h`            | Criação e acesso às filas globais                                       |
+| `python/control_gui.py` | GUI e interpretação dos dados no computador (com `pyautogui`, `pynput`) |
