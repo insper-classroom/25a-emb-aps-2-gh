@@ -21,6 +21,7 @@ int main() {
 
     static uint adc_x = 0;
     static uint adc_y = 1;
+    
     xTaskCreate(analog_task, "Analog X Task", 2048, &adc_x, 1, NULL);
     xTaskCreate(analog_task, "Analog Y Task", 2048, &adc_y, 1, NULL);
 

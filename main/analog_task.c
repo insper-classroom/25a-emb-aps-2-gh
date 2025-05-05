@@ -3,10 +3,9 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queues.h"
-#include "hardware/adc.h"
+#include "stdbool.h"
 
-#define ANALOG_X_CHANNEL 0  // GPIO 26
-#define ANALOG_Y_CHANNEL 1  // GPIO 27
+#define DEADZONE 80
 
 static int filter_adc(int raw) {
     int centered = raw - 2047;
@@ -22,7 +21,8 @@ void analog_task(void *p) {
     adc_gpio_init(gpio);
     adc_select_input(adc_channel);
 
-    int last_direction = 0;
+    bool was_positive = false;
+    bool was_negative = false;
 
     while (1) {
         int leitura = adc_read();
@@ -36,38 +36,50 @@ void analog_task(void *p) {
         int media = sum / count;
         int valor = filter_adc(media);
 
-        int dir = 0;
-        if (valor > 80) dir = 1;
-        else if (valor < -80) dir = -1;
+        int axis_positive = (adc_channel == 0) ? 6 : 8;  // D ou S
+        int axis_negative = (adc_channel == 0) ? 7 : 9;  // A ou W
 
-        if (dir != last_direction) {
-            mouse_event_t event;
-
-            if (last_direction != 0) {
-                event.axis = (adc_channel == 0)
-                    ? (last_direction > 0 ? 6 : 7)
-                    : (last_direction > 0 ? 8 : 9);
-                event.value = 0;
+        if (valor > DEADZONE) {
+            if (!was_positive) {
+                mouse_event_t event = { .axis = axis_positive, .value = 1 };
                 xQueueSend(xQueuePos, &event, 0);
+                was_positive = true;
             }
-
-            if (dir != 0) {
-                event.axis = (adc_channel == 0)
-                    ? (dir > 0 ? 6 : 7)
-                    : (dir > 0 ? 8 : 9);
-                event.value = 1;
+            if (was_negative) {
+                mouse_event_t event = { .axis = axis_negative, .value = 0 };
                 xQueueSend(xQueuePos, &event, 0);
+                was_negative = false;
             }
-
-            last_direction = dir;
+        } else if (valor < -DEADZONE) {
+            if (!was_negative) {
+                mouse_event_t event = { .axis = axis_negative, .value = 1 };
+                xQueueSend(xQueuePos, &event, 0);
+                was_negative = true;
+            }
+            if (was_positive) {
+                mouse_event_t event = { .axis = axis_positive, .value = 0 };
+                xQueueSend(xQueuePos, &event, 0);
+                was_positive = false;
+            }
+        } else {
+            if (was_positive) {
+                mouse_event_t event = { .axis = axis_positive, .value = 0 };
+                xQueueSend(xQueuePos, &event, 0);
+                was_positive = false;
+            }
+            if (was_negative) {
+                mouse_event_t event = { .axis = axis_negative, .value = 0 };
+                xQueueSend(xQueuePos, &event, 0);
+                was_negative = false;
+            }
         }
 
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(10));  // reduzido para melhorar a resposta
     }
 }
 
 void analog_task_init(void) {
     adc_init();
-    adc_gpio_init(26); // X
-    adc_gpio_init(27); // Y
+    adc_gpio_init(26); // ADC0 = eixo X
+    adc_gpio_init(27); // ADC1 = eixo Y
 }
