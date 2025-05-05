@@ -7,10 +7,10 @@
 #include "task.h"
 
 // Definições dos pinos dos botões
-#define BUTTON_SHOOT 12    // Gatilho
+#define BUTTON_SHOOT 15    // Gatilho
 #define BUTTON_RELOAD 13   // Recarregar
 #define BUTTON_JUMP 14     // Pulo
-#define BUTTON_SWITCH 15   // Trocar arma
+#define BUTTON_SWITCH 12   // Trocar arma
 #define VIBRACAL_PIN   7   // Pino do vibrador
 
 volatile bool should_vibrate = false;
